@@ -1,8 +1,17 @@
 # Cosmic Birthplace — experimental browser prototype
 
+## v0.7 — Miles alongside kilometres (user request, 22 October 2026)
+
+- Preserve v0.6 **3D Birth Sky — PASS** (user acceptance, 22 October 2026); this acceptance is for the feature, not a certification of ephemeris accuracy.
+- Display **miles as well as kilometres** in the journey metrics, Sun-centred orbital separation, galactic path, light-distance explanation, speeds, cosmic expansion and exported SVG postcard. Light-years and AU remain where useful.
+- Uses the international conversion **1 mile = 1.609344 km**; calculations remain in their existing units, with miles displayed as companions only.
+- Keep the approved layout, all ten experiments, 2D views and three accepted 3D viewers. The new distance formatting requires browser-level regression and user acceptance separately.
+
+
+
 ## v0.6 — Interactive 3D Birth Sky (development review)
 
-**Status:** Browser-level verification passed. Physical iPad Safari acceptance pending.
+**Status:** **PASS — user acceptance recorded 22 October 2026.** Automated checks passed earlier; this approval does not claim independent high-precision astronomical accuracy.
 
 ### Requirements implemented
 - Existing **My Birth Sky** 2D chart remains the default and can be restored at any point.
