@@ -1,5 +1,25 @@
 # Cosmic Birthplace — experimental browser prototype
 
+## v0.6 — Interactive 3D Birth Sky (development review)
+
+**Status:** Browser-level verification passed. Physical iPad Safari acceptance pending.
+
+### Requirements implemented
+- Existing **My Birth Sky** 2D chart remains the default and can be restored at any point.
+- Observer-centred 3D sky dome uses the same simplified altitude/azimuth source as the 2D chart.
+- Bright-star catalogue, planets, Sun and Moon are rendered at their calculated sky directions when above the horizon.
+- Four selected *asterism guide patterns* — Orion, the Plough (Ursa Major), Cassiopeia and Cygnus — connect catalogue stars where both endpoints are above the horizon. These are not official constellation boundaries or a full star atlas.
+- Touch/mouse look-around, pinch/scroll zoom, keyboard arrow controls, Reset view, labelled star/object dropdown, and direct object selection by tap/click.
+- Optional constellation line display; scene resources are cleaned up when changing experiments.
+- Fallback returns to 2D on WebGL/module failure. No additional services, accounts or remote 3D downloads.
+- Keeps approved v0.4 orbit and v0.5 birth-light modes intact.
+
+### Scientific and accessibility limits
+- The dome displays **directions, not stellar distances**. The chart uses simplified J2000 star coordinates without date-dependent precession, parallax or proper motion.
+- Planets use approximate NASA/JPL Keplerian elements; lunar position is simplified. No refraction, daylight extinction, weather or local terrain.
+- Users must enter **UTC** birth time; automatic historical local-civil-time conversion has not been implemented. Do not infer an accurate local sky from an unconverted civil birth time.
+- Keyboard controls and an object dropdown supplement pointer interaction; screen-reader usability on actual mobile hardware still needs human review.
+
 ## v0.5: Birth-light 3D acceptance specification
 
 **Preserve all ten experiments and the existing visual layout.** 2D must remain the default in both the orbit and light experiments.

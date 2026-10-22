@@ -73,6 +73,23 @@
 .birthlight-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .birthlight-controls .orbit-reset{min-width:58px}
 .birthlight-reached{font-size:11px;color:#d5e7f7;margin-top:5px}
+
+/* Optional observer-centred v0.6 planetarium. Existing 2D mode remains the default. */
+.sky3d-frame{height:clamp(280px,36vw,440px);width:100%;min-width:0;position:relative;overflow:hidden;touch-action:none}
+.sky3d-canvas{width:100%;height:100%;display:block;touch-action:none;outline-offset:-4px}
+.sky3d-overlays{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.sky3d-direction{position:absolute;font-size:14px;color:#8ce7d9;font-weight:800;text-shadow:0 1px 5px #020b1d;transform:translate(-50%,-50%)}
+.sky3d-object-label{position:absolute;font-size:11px;color:#d6e7fa;text-shadow:0 1px 5px #020b1d;transform:translate(7px,-110%);white-space:nowrap}
+.sky3d-planet-label{color:#ffd7a6}
+.sky3d-direction[hidden],.sky3d-object-label[hidden]{display:none}
+.sky3d-options{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.sky3d-options label{font-size:12px;color:#c9dcec;display:flex;align-items:center;gap:6px;cursor:pointer}
+.sky3d-options input{accent-color:#83dacf}
+.sky3d-tools{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;margin-top:12px}
+.sky3d-tools label{font-size:12px;color:#b9cce5}
+.sky3d-tools select{width:100%;min-width:0;border:1px solid #49647f;border-radius:8px;background:#111e35;color:#e4effc;padding:9px}
+.sky3d-point{color:#b7d0e4;font-size:12px;line-height:1.5;min-height:2.5em}
+.sky3d-explain{color:#b2c8de;font-size:11px;line-height:1.4;margin:8px 0}
 </style>
 <script type="importmap">{"imports":{"three":"./vendor/three.module.js"}}</script>
 </head>
@@ -85,7 +102,7 @@
  <div class="rail-note">✧ <strong>Science without false certainty.</strong><br>Actual astronomical geometry where practical; explicitly labelled estimates, reference frames and illustrations elsewhere.</div>
 </aside>
 <main class="main">
- <div class="topline"><div><div class="eyebrow">Your universe · An interactive science experience</div><h1>You have never been<br>in the same place twice.</h1></div><span class="pill">✦ Working prototype · v0.5</span></div>
+ <div class="topline"><div><div class="eyebrow">Your universe · An interactive science experience</div><h1>You have never been<br>in the same place twice.</h1></div><span class="pill">✦ Working prototype · v0.6</span></div>
  <p class="lede">Explore where Earth was when you were born, how far it has carried you and what your life means on the scale of planets, stars and galaxies.</p>
  <section class="setup" aria-label="Your starting information"><div class="setup-header"><h2>✳ Set your starting point</h2><small>Local calculations; optional place lookup</small></div>
   <div class="formgrid">
@@ -106,7 +123,7 @@
 const AU=149597870.7,C=299792.458,DAY=86400,JYEAR=365.25,EARTH_RADIUS=6371.0088,RAD=Math.PI/180,DEG=180/Math.PI,MPC_KM=3.085677581491367e19,LY_KM=C*DAY*JYEAR;
 const places={"york":[53.959,-1.082],"york, england":[53.959,-1.082],"london":[51.507,-.128],"london, england":[51.507,-.128],"edinburgh":[55.953,-3.189],"edinburgh, scotland":[55.953,-3.189],"new york":[40.713,-74.006],"new york, usa":[40.713,-74.006],"sydney":[-33.869,151.209],"sydney, australia":[-33.869,151.209],"tokyo":[35.677,139.65],"tokyo, japan":[35.677,139.65]};
 const modules=[['birthplace','01','Where was I born?'],['distance','02','How far have I travelled?'],['light','04','My birth light'],['sky','05','My birth sky'],['galaxy','06','The galactic journey'],['gravity','08','Gravity and my age'],['worlds','09','My age on other worlds'],['future','10','Earth when I’m 100'],['expansion','11','The changing universe'],['postcard','12','My cosmic address']];
-const state={module:'birthplace',birthDate:'1964-02-06',birthTime:'21:00',birthCity:'York, England',lat:places.york[0],lon:places.york[1],scrub:1,lightscrub:1,bhRadius:3,cosmoDistance:100,hubble:70,targetDate:'2064-02-06',cardName:'',largeText:false,orbitMode:'2d',lightMode:'2d'};
+const state={module:'birthplace',birthDate:'1964-02-06',birthTime:'21:00',birthCity:'York, England',lat:places.york[0],lon:places.york[1],scrub:1,lightscrub:1,bhRadius:3,cosmoDistance:100,hubble:70,targetDate:'2064-02-06',cardName:'',largeText:false,orbitMode:'2d',lightMode:'2d',skyMode:'2d',skyGuides:true};
 const esc=s=>String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');
 const num=(n,d=0)=>Number(n).toLocaleString('en-GB',{maximumFractionDigits:d,minimumFractionDigits:d});
 const mod=(x,n)=>((x%n)+n)%n,rad=d=>d*RAD,deg=r=>r*DEG,clamp=(x,min,max)=>Math.max(min,Math.min(max,x));
@@ -190,7 +207,48 @@ function lightView(){
  +info('Educational model: the sphere is centred on the original birth event, not today’s Earth position. Star directions are illustrative, not real sky coordinates. Distances are rounded examples; the light shell assumes a simplified reference frame and ignores stellar movement and absorption.');
 }
 function chartSVG(d){const cx=275,cy=245,R=202;const starsOut=[],visible=[];function pos(alt,az){const rr=(90-alt)/90*R;return [cx+Math.sin(rad(az))*rr,cy-Math.cos(rad(az))*rr];}stars.forEach(([name,ra,dec,mag])=>{const h=horiz(ra,dec,d,state.lat,state.lon);if(h.alt<0)return;const [x,y]=pos(h.alt,h.az),rr=mag<.6?3.2:mag<1.8?2.6:1.6;starsOut.push(`<circle cx="${x}" cy="${y}" r="${rr}" fill="#dcefff" opacity="${mag>3?.65:1}"/>${mag<.95?`<text x="${x+6}" y="${y-5}" font-size="10" fill="#b6cbe5">${esc(name)}</text>`:''}`);visible.push([name,h.alt,mag]);});const objects=[];const sun=sunPos(d),sunH=horiz(sun.ra,sun.dec,d,state.lat,state.lon);const moon=moonPosition(d),moonH=horiz(moon.rd.ra,moon.rd.dec,d,state.lat,state.lon);if(moonH.alt>0){const [x,y]=pos(moonH.alt,moonH.az);objects.push(`<circle cx="${x}" cy="${y}" r="7" fill="#e8dcba"/><text x="${x+10}" y="${y-8}" font-size="11" fill="#ffeac8">Moon</text>`);}const visPlanets=[];['Mercury','Venus','Mars','Jupiter','Saturn','Uranus','Neptune'].forEach(name=>{let a=apparentPlanet(name,d),h=horiz(a.ra,a.dec,d,state.lat,state.lon);if(h.alt>0){const [x,y]=pos(h.alt,h.az);objects.push(`<circle cx="${x}" cy="${y}" r="5" fill="#f9bf78"/><text x="${x+8}" y="${y+13}" font-size="10" fill="#fddda9">${name}</text>`);visPlanets.push(name);}});const circles=[.25,.5,.75,1].map(x=>`<circle cx="${cx}" cy="${cy}" r="${R*x}" fill="none" stroke="#426181" stroke-width="1" opacity=".48"/>`).join('');const lines=[0,45,90,135,180,225,270,315].map(deg0=>{const [x,y]=pos(0,deg0);return `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="#456382" stroke-width=".6" opacity=".4"/>`;}).join('');return {svg:`<svg viewBox="0 0 600 510" class="circle-chart" role="img" aria-label="Approximate circular sky map from your chosen location and UTC birth time. North is at the top and the horizon at the outer circle.">${svgHeader()}${starField(600,510,105)}<circle cx="${cx}" cy="${cy}" r="${R}" fill="#101d35" stroke="#688aa8" stroke-width="1.5"/>${circles}${lines}${starsOut.join('')}${objects.join('')}${['N','E','S','W'].map((n,i)=>`<text x="${cx+Math.sin(i*Math.PI/2)*(R+17)}" y="${cy-Math.cos(i*Math.PI/2)*(R+17)+4}" text-anchor="middle" font-size="14" font-weight="700" fill="#8ddedb">${n}</text>`).join('')}<text x="22" y="492" fill="#9eb6ce" font-size="11">Centre: zenith · Outer circle: horizon · Visible sky geometry</text></svg>`,visible:visible.sort((a,b)=>a[2]-b[2]),visPlanets,sunAltitude:sunH.alt,moonAltitude:moonH.alt};}
-function skyView(){const d=birth(),c=chartSVG(d),phase=moonPhase(d);return hd('05','What did the sky look like on your birthday?','Reconstruct the approximate sky for your selected birthplace and birth time. Move the time or coordinates above and the chart responds.')+`<div class="modulegrid"><div class="viz"><span class="vizlabel">${esc(fmtDate(d))} · ${esc(state.birthTime)} UTC</span>${c.svg}</div><div class="reading"><h3>Your reconstructed sky</h3><div class="data-row"><span>Sun altitude</span><strong>${num(c.sunAltitude,1)}° ${c.sunAltitude>0?'(above horizon)':'(below horizon)'}</strong></div><div class="data-row"><span>Moon phase</span><strong>${phase.name}</strong></div><div class="data-row"><span>Moon illuminated</span><strong>≈ ${num(phase.illumination*100)}%</strong></div><div class="data-row"><span>Moon altitude</span><strong>${num(c.moonAltitude,1)}°</strong></div><h3>Bright stars above the horizon</h3><p>${c.visible.slice(0,9).map(v=>esc(v[0])).join(' · ')||'No catalogue stars from this sample currently above the horizon.'}</p><h3>Planets above the horizon</h3><p>${c.visPlanets.join(' · ')||'None in this simplified plot.'}</p><p class="mini">The chart shows the direction of objects even during daylight, when many cannot be seen. Objects near the horizon may be obscured.</p></div></div>`+info('This is an approximate geometric reconstruction. Planetary positions use NASA/JPL low-precision elements. Moon position and phase are simplified. Stellar positions are J2000 approximations without historical precession or proper-motion correction. Always enter the correct UTC birth time.');}
+function sky3DModel(){
+ const d=birth();
+ const starData=stars.map(([name,ra,dec,mag])=>({name,ra,dec,mag,...horiz(ra,dec,d,state.lat,state.lon)}));
+ const objects=[];
+ const sun=sunPos(d);objects.push({name:'Sun',kind:'Sun',...horiz(sun.ra,sun.dec,d,state.lat,state.lon)});
+ const moon=moonPosition(d);objects.push({name:'Moon',kind:'Moon',...horiz(moon.rd.ra,moon.rd.dec,d,state.lat,state.lon)});
+ for(const name of ['Mercury','Venus','Mars','Jupiter','Saturn','Uranus','Neptune']){
+  const p=apparentPlanet(name,d);objects.push({name,kind:'Planet',...horiz(p.ra,p.dec,d,state.lat,state.lon)});
+ }
+ const guides=[
+  {name:'Orion',pairs:[['Betelgeuse','Bellatrix'],['Bellatrix','Mintaka'],['Mintaka','Alnilam'],['Alnilam','Alnitak'],['Alnitak','Saiph'],['Saiph','Rigel'],['Rigel','Mintaka'],['Betelgeuse','Alnitak']]},
+  {name:'Ursa Major (Plough)',pairs:[['Dubhe','Merak'],['Merak','Phecda'],['Phecda','Megrez'],['Megrez','Dubhe'],['Megrez','Alioth'],['Alioth','Mizar'],['Mizar','Alkaid']]},
+  {name:'Cassiopeia',pairs:[['Caph','Schedar'],['Schedar','Navi'],['Navi','Ruchbah'],['Ruchbah','Segin']]},
+  {name:'Cygnus',pairs:[['Deneb','Sadr'],['Sadr','Albireo'],['Gienah','Sadr'],['Sadr','Vega']].filter(([a,b])=>b!=='Vega')}
+ ];
+ return {stars:starData,objects,guides,showGuides:state.skyGuides};
+}
+function skyView(){
+ const d=birth(),c=chartSVG(d),phase=moonPhase(d),is3d=state.skyMode==='3d';
+ const m=is3d?sky3DModel():null;
+ const choices=m?[...m.objects.filter(o=>o.alt>=0),...m.stars.filter(o=>o.alt>=0)].sort((a,b)=>a.name.localeCompare(b.name)):[];
+ return hd('05','What did the sky look like on your birthday?','Reconstruct the approximate sky for your selected birthplace and birth time. Move the time or coordinates above and the chart responds.')+
+ `<div class="modulegrid"><div>
+ <div class="orbit-view-top"><div class="orbit-switch" role="group" aria-label="Birth sky diagram view">
+  <button type="button" data-sky-mode="2d" aria-pressed="${!is3d}">2D</button>
+  <button type="button" data-sky-mode="3d" aria-pressed="${is3d}">3D</button>
+ </div>
+ ${is3d?'<div class="sky3d-options"><label><input type="checkbox" id="skyGuides" '+(state.skyGuides?'checked':'')+'> Constellation guides</label><button type="button" data-action="skyreset" class="orbit-reset">Reset view</button></div>':''}
+ </div>
+ <div class="viz">${is3d?'<div id="sky3d" class="sky3d-frame" role="group" aria-label="Interactive 3D sky with stars, Solar System objects, horizon and optional constellation guides"><div class="orbit3d-loading" role="status">Loading the 3D birth sky…</div></div>':`<span class="vizlabel">${esc(fmtDate(d))} · ${esc(state.birthTime)} UTC</span>${c.svg}`}</div>
+ ${is3d?`<p class="sky3d-explain">Drag to look around · Pinch or scroll to zoom · Arrow keys also look around · Tap a bright object for details · Lines show selected constellation patterns</p><div class="sky3d-tools"><label for="skyObjectSelect">Find a visible star or Solar System object</label><select id="skyObjectSelect"><option value="">Choose an object…</option>${choices.map(x=>`<option value="${esc(x.name)}">${esc(x.name)} (${esc(x.kind||'Star')})</option>`).join('')}</select><div id="skySelectedInfo" class="sky3d-point" role="status" aria-live="polite">Choose an object or tap one in the sky to inspect its direction.</div><div id="skyLookDirection" class="sky3d-point" aria-live="off">Looking north · 20° above the horizon</div></div>`:''}
+ </div><div class="reading"><h3>Your reconstructed sky</h3>
+ <div class="data-row"><span>Sun altitude</span><strong>${num(c.sunAltitude,1)}° ${c.sunAltitude>0?'(above horizon)':'(below horizon)'}</strong></div>
+ <div class="data-row"><span>Moon phase</span><strong>${phase.name}</strong></div>
+ <div class="data-row"><span>Moon illuminated</span><strong>≈ ${num(phase.illumination*100)}%</strong></div>
+ <div class="data-row"><span>Moon altitude</span><strong>${num(c.moonAltitude,1)}°</strong></div>
+ <h3>Bright stars above the horizon</h3><p>${c.visible.slice(0,9).map(v=>esc(v[0])).join(' · ')||'No catalogue stars from this sample currently above the horizon.'}</p>
+ <h3>Planets above the horizon</h3><p>${c.visPlanets.join(' · ')||'None in this simplified plot.'}</p>
+ <p class="mini">Directions are shown even during daylight. Actual visibility depends on sunlight, the atmosphere, the horizon and brightness.</p>
+ ${is3d?'<p class="mini">Guides: Orion, Ursa Major (the Plough), Cassiopeia and Cygnus where catalogue stars are above the horizon. Not a complete star atlas.</p>':''}
+ </div></div>`+info('Educational reconstruction. The 3D sphere represents directions from your birthplace, not star distances. Stellar catalogue coordinates are simplified J2000 values (no historical precession or proper motion). Approximate planets use NASA/JPL elements; the Moon model is simplified. Time is UTC, not local civil time; set your historical UTC birth time manually. No atmospheric refraction or daylight extinction is applied.');
+}
 function galaxySVG(angle){const cx=400,cy=218;let paths='';for(let arm=0;arm<4;arm++){let points='';for(let i=0;i<120;i++){const r=12+i*2.15,t=arm*Math.PI/2+i*.045,x=cx+r*Math.cos(t),y=cy+.56*r*Math.sin(t);points+=(i?' L':'M')+x.toFixed(1)+' '+y.toFixed(1);}paths+=`<path d="${points}" stroke="${['#4ba4c5','#9e83da','#6aaab1','#748ee1'][arm]}" stroke-width="${arm%2?18:24}" opacity=".17" fill="none"/><path d="${points}" stroke="#b7d1fd" stroke-width="1" opacity=".17" fill="none"/>`;}const sunX=400+160*Math.cos(.6),sunY=218+160*.56*Math.sin(.6),delta=angle*RAD;return `<svg viewBox="0 0 800 450" role="img" aria-label="Illustrative Milky Way spiral with Sun near an arm. Galactic movement during one life is too tiny to resolve at this scale">${svgHeader()}${starField(800,450,135)}${paths}<ellipse cx="${cx}" cy="${cy}" rx="35" ry="20" fill="#f1c1aa" opacity=".55" filter="url(#glow)"/><ellipse cx="${cx}" cy="${cy}" rx="20" ry="11" fill="#eec3a0"/><circle cx="${sunX}" cy="${sunY}" r="6" fill="#ffe29b" stroke="white"/><path d="M ${sunX+7} ${sunY-6} L ${sunX+48} ${sunY-54}" stroke="#b9ebdf"/><text x="${sunX+52}" y="${sunY-55}" fill="#ecf5ff" font-size="15">OUR SUN</text><text x="24" y="416" fill="#b5c6db" font-size="12">Galactic arms are illustrative; no movement is exaggerated on this galaxy-scale map.</text></svg>`;}
 function galaxyView(){const t=years(),orbit=230e6,angle=t/orbit*360,galKm=elapsed()*DAY*220;return hd('06','How far has the Galaxy carried you?','The Sun orbits the centre of the Milky Way. During one human life it travels an immense distance—but only a minute fraction of its enormous galactic orbit.')+`<div class="modulegrid"><div class="viz"><span class="vizlabel">Illustrative face-on Milky Way</span>${galaxySVG(angle)}</div><div class="reading"><h3>Your place in a galactic year</h3><div class="big accent">${briefDistance(galKm)}</div><p>Estimated solar path length since your birth.</p><div class="data-row"><span>Adopted solar speed</span><strong>220 km/s</strong></div><div class="data-row"><span>Approx. galactic orbit</span><strong>230 million years</strong></div><div class="data-row"><span>Galactic orbit completed</span><strong>${num(t/orbit*100,6)}%</strong></div><div class="data-row"><span>Angle travelled (model)</span><strong>${num(angle,5)}°</strong></div><p>Even a lifetime's solar motion cannot be shown visibly on an illustration of the whole Galaxy without exaggeration.</p></div></div>`+info('Solar speeds depend on the reference frame and adopted galactic constants. The ~220 km/s and ~230-million-year estimates are independent round figures, so the displayed path length and completed-orbit fraction should be interpreted separately. No claim of an absolute galactic coordinate is made.');}
 function gravView(){const grav=(GM,R)=>Math.sqrt(1-2*GM/(R*C*C)),gEarth=grav(398600.435507,6371),gMoon=grav(4902.800066,1737.4),s=elapsed()*DAY,diff=(gMoon-gEarth)*s,bh=Math.sqrt(1-1/state.bhRadius),tYears=years();return hd('08','Does gravity change your age?','Yes. In general relativity, clocks at different gravitational potentials tick at different rates. Compare a simplified Earth/Moon experiment with a theoretical stationary clock near a black hole.')+`<div class="modulegrid"><div><div class="subgrid"><div class="numbertile"><div class="eyebrow">Earth vs Moon surfaces</div><strong>${num(diff,3)} sec</strong><span>In this isolated-body model, a Moon surface clock gains approximately this much relative to an Earth surface clock over your lifetime.</span></div><div class="numbertile"><div class="eyebrow">Earth vs far from gravity</div><strong>${num((1-gEarth)*s,3)} sec</strong><span>A hypothetical far-away comparison clock gains this much, neglecting the influence of other bodies.</span></div></div><div class="reading" style="margin-top:14px"><h3>Black-hole thought experiment</h3><div class="switchfield"><label for="bhRadius">Stationary distance from centre</label><input id="bhRadius" type="range" min="110" max="2000" step="10" value="${Math.round(state.bhRadius*100)}" data-state="bhRadius"><strong>${num(state.bhRadius,1)} Schwarzschild radii</strong></div><div class="bar"><span style="width:${num(bh*100,3)}%"></span></div><div class="big">${num(tYears*bh,2)} years</div><p>Time on that clock while a very distant clock measures ${num(tYears,2)} years. The black hole is assumed non-rotating, the clock held stationary.</p></div></div><div class="reading"><h3>Why it happens</h3><p>Gravity changes how proper time accumulates along a worldline. A clock deeper in a gravitational field can tick more slowly relative to a distant stationary clock.</p><p>Near a black hole, the effect can be dramatic. Staying stationary close to its horizon requires enormous acceleration and may not be physically survivable.</p><p><strong>Important:</strong> the Earth–Moon comparison is not a complete real-world clock experiment. Actual clocks also experience the Sun's and each other's gravity, rotation and orbital velocities.</p></div></div>`+info('Earth and Moon use simple Schwarzschild-type gravitational factors with GM and mean radii; Schwarzschild is only an approximation for a real rotating Earth. Black-hole example uses dτ/dt=√(1−rₛ/r), requiring r>rₛ.');}
@@ -276,14 +334,55 @@ window.addEventListener('cosmicbirthlight3dfailed',()=>{
  if(state.lightMode==='3d'){state.lightMode='2d';render();toast('3D light view interrupted. Returned to 2D.');}
 });
 
+let sky3DImport;
+async function mountSky3D(){
+ const node=el('sky3d');if(!node)return;
+ try{
+  if(!sky3DImport)sky3DImport=import('./sky3d.js');
+  await sky3DImport;
+  if(!node.isConnected||state.module!=='sky'||state.skyMode!=='3d')return;
+  window.cosmicSky3D.mount(node,sky3DModel());
+ }catch(error){
+  sky3DImport=null;
+  if(node.isConnected&&state.module==='sky'&&state.skyMode==='3d'){
+   console.warn('3D birth sky unavailable:',error);
+   state.skyMode='2d';render();toast('3D birth sky unavailable. Showing the 2D chart.');
+  }
+ }
+}
+function selectSkyObject(name){
+ if(!name||state.module!=='sky'||state.skyMode!=='3d')return;
+ const m=sky3DModel();
+ const item=[...m.stars,...m.objects].find(x=>x.name===name&&x.alt>=0);
+ if(!item)return;
+ window.cosmicSky3D?.look(item.az,Math.max(-8,item.alt));
+ const output=el('skySelectedInfo');
+ if(output)output.textContent=item.name+' · '+(item.kind||'Star')+' · altitude '+num(item.alt,1)+'° · azimuth '+num(item.az,1)+'°';
+ const choice=el('skyObjectSelect');if(choice)choice.value=name;
+}
+window.addEventListener('cosmicskyselect',event=>{
+ const item=event.detail;
+ if(item?.name)selectSkyObject(item.name);
+});
+window.addEventListener('cosmicskydirection',event=>{
+ const out=el('skyLookDirection');if(!out)return;
+ const az=event.detail.az,alt=event.detail.alt;
+ const compass=['N','NE','E','SE','S','SW','W','NW'][Math.round(az/45)%8];
+ out.textContent='Looking '+compass+' ('+Math.round(az)+'°) · '+Math.round(alt)+'° above horizon';
+});
+window.addEventListener('cosmicsky3dfailed',()=>{
+ if(state.module==='sky'&&state.skyMode==='3d'){state.skyMode='2d';render();toast('3D sky interrupted. Returned to 2D.');}
+});
 function render(){
  const d=birth();if(!Number.isFinite(d.getTime()))return;
  stopBirthLightPlayback();
  window.cosmicOrbit3D?.dispose();
  window.cosmicBirthLight3D?.dispose();
+ window.cosmicSky3D?.dispose();
  renderNav();renderStats();el('moduleContent').innerHTML=views[state.module]();
  if(state.module==='birthplace'&&state.orbitMode==='3d')void mountOrbit3D();
  if(state.module==='light'&&state.lightMode==='3d')void mountBirthLight3D();
+ if(state.module==='sky'&&state.skyMode==='3d')void mountSky3D();
 }
 window.addEventListener('cosmic3dfailed',()=>{
  if(state.orbitMode==='3d'){state.orbitMode='2d';render();toast('3D view was interrupted. Returned to 2D.');}
@@ -337,9 +436,9 @@ function newBirth(){const d=birth();state.targetDate=Number.isFinite(d.getTime()
 function saveSvg(){const blob=new Blob([cardSVG()],{type:'image/svg+xml;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='cosmic-birthplace.svg';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),3000);toast('Cosmic postcard saved.');}
 async function copySummary(){const text=`Cosmic Birthplace\nBorn ${fmtDate(birth())} ${state.birthTime} UTC\nBirthplace: ${state.birthCity}\nReference: ${num(state.lat,3)}° N, ${num(state.lon,3)}° E\nAge: ${num(years(),2)} Julian years\nBirth-light radius: ${num(years(),2)} light-years\nSun’s estimated galactic path: ${briefDistance(elapsed()*DAY*220)}\nReference frames and approximations apply.`;try{await navigator.clipboard.writeText(text);toast('Summary copied.');}catch(_){const t=document.createElement('textarea');t.value=text;document.body.appendChild(t);t.select();const ok=document.execCommand('copy');t.remove();toast(ok?'Summary copied.':'Clipboard unavailable in this browser.');}}
 // One delegated handler for every module. Optional city lookup uses the non-commercial Open-Meteo geocoding API (GeoNames).
-document.addEventListener('click',e=>{const placeOption=e.target.closest('[data-place-index]');if(placeOption){const match=pendingPlaceMatches[Number(placeOption.dataset.placeIndex)];if(!match)return;try{applyCoordinates(match.latitude,match.longitude,'Selected: '+[match.name,match.admin1,match.country].filter(Boolean).join(', ')+' · Location data: GeoNames via Open-Meteo.');}catch(_){placeStatus('Invalid coordinates returned; enter them manually.',true);}return;}if(e.target.closest('#findBirthCity')){void findBirthplace();return;}const orbitButton=e.target.closest('[data-orbit-mode]');if(orbitButton){state.orbitMode=orbitButton.dataset.orbitMode;render();return;}const lightButton=e.target.closest('[data-light-mode]');if(lightButton){state.lightMode=lightButton.dataset.lightMode;render();return;}const nav=e.target.closest('[data-nav]');if(nav){state.module=nav.dataset.nav;location.hash=state.module;render();el('moduleContent').scrollIntoView({block:'start',behavior:matchMedia('(prefers-reduced-motion:reduce)').matches?'instant':'smooth'});return;}const a=e.target.closest('[data-action]');if(!a)return;switch(a.dataset.action){case'download':saveSvg();break;case'copy':copySummary();break;case'reset3d':window.cosmicOrbit3D?.reset();break;case'lightreset':window.cosmicBirthLight3D?.reset();break;case'lightplay':playBirthLight();break;case'at100':newBirth();break;}});
+document.addEventListener('click',e=>{const placeOption=e.target.closest('[data-place-index]');if(placeOption){const match=pendingPlaceMatches[Number(placeOption.dataset.placeIndex)];if(!match)return;try{applyCoordinates(match.latitude,match.longitude,'Selected: '+[match.name,match.admin1,match.country].filter(Boolean).join(', ')+' · Location data: GeoNames via Open-Meteo.');}catch(_){placeStatus('Invalid coordinates returned; enter them manually.',true);}return;}if(e.target.closest('#findBirthCity')){void findBirthplace();return;}const orbitButton=e.target.closest('[data-orbit-mode]');if(orbitButton){state.orbitMode=orbitButton.dataset.orbitMode;render();return;}const lightButton=e.target.closest('[data-light-mode]');if(lightButton){state.lightMode=lightButton.dataset.lightMode;render();return;}const skyButton=e.target.closest('[data-sky-mode]');if(skyButton){state.skyMode=skyButton.dataset.skyMode;render();return;}const nav=e.target.closest('[data-nav]');if(nav){state.module=nav.dataset.nav;location.hash=state.module;render();el('moduleContent').scrollIntoView({block:'start',behavior:matchMedia('(prefers-reduced-motion:reduce)').matches?'instant':'smooth'});return;}const a=e.target.closest('[data-action]');if(!a)return;switch(a.dataset.action){case'download':saveSvg();break;case'copy':copySummary();break;case'reset3d':window.cosmicOrbit3D?.reset();break;case'lightreset':window.cosmicBirthLight3D?.reset();break;case'skyreset':window.cosmicSky3D?.reset();break;case'lightplay':playBirthLight();break;case'at100':newBirth();break;}});
 document.addEventListener('input',e=>{const t=e.target;if(t.matches('[data-state]')){const k=t.dataset.state;state[k]=Number(t.value)/(k==='scrub'||k==='lightscrub'?1000:k==='bhRadius'?100:1);if(k==='lightscrub'&&state.module==='light'){stopBirthLightPlayback();updateBirthLightReadout();}if(k==='scrub'&&state.module==='birthplace'){const d=birth(),selected=new Date(d.getTime()+(now()-d)*state.scrub);const label=el('orbitLiveDate');if(label)label.textContent=fmtDate(selected);if(state.orbitMode==='3d'&&window.cosmicOrbit3D)window.cosmicOrbit3D.update({birth:planetXYZ('Earth',d),selected:planetXYZ('Earth',selected),birthDate:d.toISOString(),selectedDate:selected.toISOString()});}return;}if(t.id==='cardName'){state.cardName=t.value;const card=el('moduleContent').querySelector('.cosmos-card h3');if(card)card.textContent=t.value.trim()||'A life in the Universe';return;}if(t.id==='birthCity'){state.birthCity=t.value;placeVerified=false;++placeSearchSerial;clearPlaceMatches();const button=el('findBirthCity');button.disabled=false;button.textContent='⌕ Find coordinates';placeStatus('Place changed. Find its coordinates, or enter latitude and longitude. Existing coordinates still apply until then.',true);return;}if(t.id==='birthLat'||t.id==='birthLon'){return;}});
-document.addEventListener('change',e=>{const t=e.target;if(t.matches('[data-state]')){render();return;}if(t.id==='birthDate'){if(!t.value)return;state.birthDate=t.value;newBirth();}else if(t.id==='birthTime'){state.birthTime=t.value||'21:00';render();}else if(t.id==='birthCity'){state.birthCity=t.value.trim();const known=places[placeKey(state.birthCity)];if(known){applyCoordinates(known[0],known[1],`Coordinates found for ${state.birthCity} (built-in example).`);}else if(!placeVerified){placeStatus('Find coordinates for '+(state.birthCity||'your birthplace')+', or enter them manually. Current sky still uses the previous coordinates.',true);}}else if(t.id==='birthLat'||t.id==='birthLon'){const n=Number(t.value);if(!Number.isFinite(n)){syncFields();return;}state[t.id==='birthLat'?'lat':'lon']=clamp(n,t.id==='birthLat'?-90:-180,t.id==='birthLat'?90:180);placeVerified=true;syncFields();render();placeStatus('Coordinates entered manually for '+(state.birthCity.trim()||'this birthplace')+'.');}else if(t.id==='targetDate'){if(t.value){state.targetDate=t.value;render();}}});
+document.addEventListener('change',e=>{const t=e.target;if(t.id==='skyObjectSelect'){selectSkyObject(t.value);return;}if(t.id==='skyGuides'){state.skyGuides=t.checked;window.cosmicSky3D?.guides(t.checked);return;}if(t.matches('[data-state]')){render();return;}if(t.id==='birthDate'){if(!t.value)return;state.birthDate=t.value;newBirth();}else if(t.id==='birthTime'){state.birthTime=t.value||'21:00';render();}else if(t.id==='birthCity'){state.birthCity=t.value.trim();const known=places[placeKey(state.birthCity)];if(known){applyCoordinates(known[0],known[1],`Coordinates found for ${state.birthCity} (built-in example).`);}else if(!placeVerified){placeStatus('Find coordinates for '+(state.birthCity||'your birthplace')+', or enter them manually. Current sky still uses the previous coordinates.',true);}}else if(t.id==='birthLat'||t.id==='birthLon'){const n=Number(t.value);if(!Number.isFinite(n)){syncFields();return;}state[t.id==='birthLat'?'lat':'lon']=clamp(n,t.id==='birthLat'?-90:-180,t.id==='birthLat'?90:180);placeVerified=true;syncFields();render();placeStatus('Coordinates entered manually for '+(state.birthCity.trim()||'this birthplace')+'.');}else if(t.id==='targetDate'){if(t.value){state.targetDate=t.value;render();}}});
 el('toggleText').addEventListener('click',()=>{state.largeText=!state.largeText;document.body.classList.toggle('large-text',state.largeText);el('toggleText').textContent=state.largeText?'Aa — normal text':'Aa — larger text';});
 window.addEventListener('hashchange',()=>{const h=location.hash.slice(1);if(views[h]&&state.module!==h){state.module=h;render();}});
 if(views[location.hash.slice(1)])state.module=location.hash.slice(1);syncFields();render();
