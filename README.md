@@ -1,30 +1,31 @@
 # Cosmic Birthplace — experimental browser prototype
 
-This is the experimental public test version of Cosmic Birthplace. It contains the ten original science experiments.
+## v0.5: Birth-light 3D acceptance specification
 
-## 3D milestone (v0.4)
-Experiment 01 now offers **2D / 3D** diagram buttons.
-- 2D remains the default and is not replaced.
-- 3D is loaded only after selecting it and uses the same approximate JPL-derived Earth positions as 2D.
-- One-finger drag or left mouse drag rotates. Pinch or mouse-wheel zooms. Two-finger move or right mouse button pans. Reset view restores the camera.
-- The existing lifetime slider updates the selected Earth position. Labels distinguish birth and selected dates.
-- Sun/Earth sizes, the star backdrop and some visual effects are illustrative. The positions have a Sun-centred reference frame; the scene does not model the Galaxy's translation.
-- A missing WebGL context or failed script load returns to the 2D diagram.
+**Preserve all ten experiments and the existing visual layout.** 2D must remain the default in both the orbit and light experiments.
 
-## How to run
-On a local machine, serve this folder using a small web server and open it in a browser, for example:
+### Feature requirements
+- **Switch:** Experiment 04 (“My birth light”) offers 2D/3D; switching back retains the current lifetime position.
+- **3D shell:** Semi-transparent spherical shell is centred on a schematic birth-event marker, with a clear direction/scale caveat.
+- **Distances:** Sphere radius in light-years equals elapsed Julian years times the existing lifetime-slider fraction (within formatting tolerance). Sample star distances are reused from the 2D feature.
+- **Reached examples:** Example stars inside/outside the sphere differ visibly; counts and the adjacent text update as the slider moves.
+- **Interaction:** Touch or mouse rotation; pinch or wheel zoom; camera reset; keyboard-accessible Play/Pause button, slider and mode controls.
+- **Playback:** A short, user-initiated animation expands the sphere from birth to the present. Pause, hidden tab and navigation stop playback; no automatic background animation.
+- **Fallback:** If WebGL or module loading fails, return to 2D with a brief message.
+- **Responsive:** No horizontal overflow at common phone, tablet and desktop widths. Restore 2D cleanly on navigation.
+- **Scientific caution:** Directions are schematic, distances are rounded samples, and Earth has moved from the birth event; do not imply the 3D image is a surveyed 3D local star map.
 
-```shell
-python -m http.server 8000
-```
+### Scientific boundaries
+A simplified shell model in a chosen reference frame. Assumes light propagation through vacuum; does not simulate actual detectable signals, absorption, gravitational lensing, proper motion, or full time-dependent astrometry. Star radial distances come from the existing illustrative data. This is an educational visualisation, not an observation planner.
 
-Open http://localhost:8000/ . The 3D module uses browser ES modules and therefore needs HTTP(S). GitHub Pages serves this directly.
+### v0.4: 3D orbital milestone (preserved)
+Experiment 01 offers 2D/3D based on the existing approximate JPL-derived Earth positions. The 3D view supports rotation, zoom and reset, and returns to 2D if WebGL is unavailable.
 
-## Privacy
-Calculations run in the browser. Optional place lookup sends the entered place-name query to Open-Meteo. No account or analytics is included.
+### Local development
+Serve this folder over HTTP, e.g. `python -m http.server 8000`, then open `http://localhost:8000/`. Browser ES modules require HTTP(S).
 
-## Libraries
-The 3D mode includes Three.js 0.186.1 and OrbitControls, licensed MIT; see `vendor/THREE_LICENSE.txt`. All library files are served locally rather than from an external CDN.
+### Dependencies and privacy
+Includes locally hosted Three.js 0.186.1 and OrbitControls (MIT licence: `vendor/THREE_LICENSE.txt`); no external CDN. Scientific calculations run locally in the browser. Optional birthplace search sends only the typed place name to Open-Meteo. No accounts or analytics.
 
-## Accuracy
-This is an educational experience, not a full ephemeris or astrometric simulator. Read "Methods, accuracy and sources" in the app.
+### Acceptance
+Automated browser acceptance is an engineering check, not a substitute for human testing on a physical iPad or PC.
