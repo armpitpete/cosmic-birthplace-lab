@@ -20,6 +20,35 @@
 .place-results button{width:100%;display:block;padding:8px 10px;border:1px solid #354d6d;border-radius:8px;background:#172840;color:#e3efff;font-size:12px;text-align:left;cursor:pointer;margin:4px 0;white-space:normal}
 .place-results button:hover{border-color:var(--teal);background:#203b4e}
 .place-results[hidden]{display:none}
+
+/* Keep every experiment visible on tablet and phone; no horizontal scrolling required. */
+@media (max-width:1080px){
+  .navs{
+    display:grid;
+    grid-template-columns:repeat(5,minmax(0,1fr));
+    gap:5px;
+    overflow:visible;
+    padding-bottom:7px;
+  }
+  .nav{
+    box-sizing:border-box;
+    width:100%;
+    min-width:0;
+    margin:0;
+    white-space:normal;
+    overflow-wrap:anywhere;
+    line-height:1.25;
+  }
+}
+@media (max-width:900px){
+  .navs{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
+@media (max-width:760px){
+  .navs{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media (max-width:480px){
+  .navs{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
 </style>
 </head>
 <body>
