@@ -28,4 +28,7 @@ Serve this folder over HTTP, e.g. `python -m http.server 8000`, then open `http:
 Includes locally hosted Three.js 0.186.1 and OrbitControls (MIT licence: `vendor/THREE_LICENSE.txt`); no external CDN. Scientific calculations run locally in the browser. Optional birthplace search sends only the typed place name to Open-Meteo. No accounts or analytics.
 
 ### Acceptance
-Automated browser acceptance is an engineering check, not a substitute for human testing on a physical iPad or PC.
+- **v0.5 Birth-Light 3D — PASS (user visual acceptance, 22 October 2026).** Preserve the accepted 3D experience, optional 2D view, controls and scientific disclaimers in further work.
+- Automated browser checks passed for desktop, tablet and phone-sized viewports, including slider, animation, rotation, zoom, reset and 2D fallback.
+- Acceptance does not imply full scientific validation of all ten experiments.
+- **Next candidate:** v0.6 interactive birth-sky 3D; not yet implemented or approved.
